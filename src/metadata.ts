@@ -3,23 +3,34 @@ import { jupsoft } from './client.js';
 
 import type { PageProps } from './types.js';
 
-export async function generateBlogMeta({ params, searchParams }: PageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const sp = await searchParams;
-  const lang = sp?.lang || 'en';
-  const blog = await jupsoft.getBlogBySlug(slug, lang);
+export async function generateBlogMeta(
+  { params, searchParams }: PageProps,
+  client?: typeof jupsoft
+): Promise<Metadata> {
+  const activeClient = client || jupsoft;
+  // Fix Bug #3: Safely resolve params without crashing on undefined or synchronous params
+  const resolvedParams = (params ? await params : {}) as { slug?: string };
+  const slug = resolvedParams?.slug || '';
+  if (!slug) {
+    return { title: 'Article Not Found' };
+  }
+
+  const sp = (searchParams ? await searchParams : {}) as Record<string, string | undefined>;
+  // Fix Bug #20: Respect client's defaultLang instead of hardcoded 'en'
+  const lang = sp?.lang || activeClient.defaultLang || 'en';
+  const blog = await activeClient.getBlogBySlug(slug, lang);
 
   if (!blog) {
     return { title: 'Article Not Found' };
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_DOMAIN || '';
+  const baseUrl = (typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_SITE_DOMAIN : '') || '';
 
   return {
     title: blog.seo?.metaTitle || blog.title,
     description: blog.seo?.metaDescription || blog.excerpt,
     alternates: {
-      canonical: baseUrl ? `${baseUrl}/blog/${slug}${lang !== 'en' ? `?lang=${lang}` : ''}` : undefined,
+      canonical: baseUrl ? `${baseUrl}/blog/${slug}${lang !== activeClient.defaultLang ? `?lang=${lang}` : ''}` : undefined,
       languages: baseUrl ? {
         'en': `${baseUrl}/blog/${slug}?lang=en`,
         'hi': `${baseUrl}/blog/${slug}?lang=hi`,

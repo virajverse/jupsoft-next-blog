@@ -2,22 +2,33 @@ import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
-import { jupsoft } from '../client.js';
-
+import { jupsoft, JupsoftClient } from '../client.js';
 import type { PageProps } from '../types.js';
 
-export async function JupsoftBlogDetail({ params, searchParams }: PageProps) {
-  const { slug } = await params;
-  const sp = await searchParams;
+export async function JupsoftBlogDetail({ params, searchParams, client }: PageProps & { client?: JupsoftClient }) {
+  const activeClient = client || jupsoft;
+  
+  // Fix Bug #3: Safely resolve params whether Promise or object without crashing on undefined
+  const resolvedParams = (params ? await params : {}) as { slug?: string };
+  const slug = resolvedParams?.slug || '';
+  if (!slug) notFound();
 
+  const sp = (searchParams ? await searchParams : {}) as Record<string, string | undefined>;
+
+  // Fix Bug #10: Ordered language preference matching
   const headerStore = await headers();
   const acceptLang = (headerStore.get('accept-language') || '').toLowerCase();
-  const currentLang = sp?.lang || (acceptLang.includes('hi') ? 'hi' : acceptLang.includes('fr') ? 'fr' : acceptLang.includes('ar') ? 'ar' : 'en');
+  let currentLang = sp?.lang;
+  if (!currentLang) {
+    const langs = acceptLang.split(',').map((s) => s.split(';')[0].trim().slice(0, 2));
+    const supported = ['en', 'hi', 'fr', 'ar'];
+    currentLang = supported.find((l) => langs.includes(l)) || 'en';
+  }
 
-  const blog = await jupsoft.getBlogBySlug(slug, currentLang);
+  const blog = await activeClient.getBlogBySlug(slug, currentLang);
   if (!blog) notFound();
 
-  jupsoft.recordView(slug, blog.id);
+  activeClient.recordView(slug, blog.id);
 
   return (
     <main className="max-w-4xl mx-auto py-12 px-4 sm:px-6">

@@ -47,7 +47,7 @@ const webhookSec = params.secret || process.env.CMS_WEBHOOK_SECRET || '';
 // Detect project type
 let isNextJs = false;
 let isExpress = false;
-let hasPagesDir = fs.existsSync(path.join(cwd, 'pages'));
+let hasPagesDir = fs.existsSync(path.join(cwd, 'pages')) && fs.statSync(path.join(cwd, 'pages')).isDirectory();
 
 const pkgPath = path.join(cwd, 'package.json');
 if (fs.existsSync(pkgPath)) {
@@ -138,7 +138,11 @@ if (!isNextJs) {
     let serverCode = fs.readFileSync(serverPath, 'utf8');
     if (!serverCode.includes('/blog')) {
       const routeSnippet = `\n// Jupsoft Centralized CMS Blog Routes\napp.get('/blog', (req, res) => res.sendFile(path.join(__dirname, '${hasPagesDir ? 'pages' : ''}', 'blog.html')));\napp.post('/api/revalidate', express.json(), (req, res) => res.json({ revalidated: true, timestamp: new Date().toISOString() }));\n`;
-      serverCode = serverCode.replace(/(app\.listen|\/\/ Handle 404)/, `${routeSnippet}\n$1`);
+      if (/(app\.listen|\/\/ Handle 404)/.test(serverCode)) {
+        serverCode = serverCode.replace(/(app\.listen|\/\/ Handle 404)/, `${routeSnippet}\n$1`);
+      } else {
+        serverCode += `\n${routeSnippet}\n`;
+      }
       fs.writeFileSync(serverPath, serverCode, 'utf8');
       console.log('\x1b[32m%s\x1b[0m', '  ✅ Automatically wired /blog and /api/revalidate into server.js');
     }

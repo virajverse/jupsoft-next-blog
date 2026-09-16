@@ -49,11 +49,6 @@
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0"
   },
-  "peerDependenciesMeta": {
-    "next": { "optional": true },
-    "react": { "optional": true },
-    "react-dom": { "optional": true }
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/virajverse/jupsoft-next-blog.git"

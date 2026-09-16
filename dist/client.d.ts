@@ -1,10 +1,11 @@
 import { JupsoftConfig, BlogPost, BlogListResponse, Category, Tag } from './types.js';
 export declare class JupsoftClient {
-    private apiUrl;
-    private apiKey;
-    private websiteId;
-    private defaultLang;
+    private config;
     constructor(config?: Partial<JupsoftConfig>);
+    get apiUrl(): string;
+    get apiKey(): string;
+    get websiteId(): string;
+    get defaultLang(): string;
     private request;
     getBlogs(params?: {
         page?: number;
@@ -30,7 +31,7 @@ export declare class JupsoftClient {
         data: BlogPost[];
     }>;
     getWebsiteInfo(): Promise<any>;
-    recordView(slug: string, blogId?: string): void;
+    recordView(slug: string, blogId?: string): Promise<void>;
     verifyWebhookSignature(payloadText: string, signature: string | null, secret?: string): Promise<boolean>;
 }
 export declare const jupsoft: JupsoftClient;

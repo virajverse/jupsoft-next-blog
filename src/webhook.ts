@@ -12,12 +12,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid HMAC signature' }, { status: 401 });
   }
 
-  const payload = JSON.parse(bodyText);
+  let payload: any;
+  try {
+    payload = JSON.parse(bodyText);
+  } catch {
+    return NextResponse.json({ error: 'Malformed JSON payload' }, { status: 400 });
+  }
 
-  // Invalidate specific article cache and list tags
+  // Invalidate specific article cache and list tags (Fix Bug #6: safely validate slug)
   if (payload.event === 'blog.published' || payload.event === 'blog.archived') {
-    if (payload.slug) {
-      (revalidateTag as any)(`blog:${payload.slug}`);
+    if (payload.slug && typeof payload.slug === 'string') {
+      const cleanSlug = payload.slug.trim();
+      (revalidateTag as any)(`blog:${cleanSlug}`);
     }
     (revalidateTag as any)('blogs');
     (revalidateTag as any)('blogs-list');

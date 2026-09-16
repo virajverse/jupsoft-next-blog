@@ -1,44 +1,39 @@
 import React from 'react';
 import Link from 'next/link';
 import { headers } from 'next/headers';
-import { jupsoft } from '../client.js';
+import { jupsoft, JupsoftClient } from '../client.js';
+import type { BlogListPageProps } from '../types.js';
 
-export interface BlogListPageProps {
-  searchParams?: Promise<{
-    page?: string;
-    category?: string;
-    tag?: string;
-    q?: string;
-    lang?: string;
-  }>;
-}
+export { BlogListPageProps };
 
-export async function JupsoftBlogList({ searchParams }: BlogListPageProps) {
-  const sp = (await searchParams) || {};
-  const currentPage = Number(sp.page) || 1;
+export async function JupsoftBlogList({ searchParams, client }: BlogListPageProps & { client?: JupsoftClient }) {
+  const activeClient = client || jupsoft;
+  const sp = (searchParams ? await searchParams : {}) as Record<string, string | undefined>;
+  
+  // Fix Bug #12: Sanitize page number to positive integer
+  const currentPage = Math.max(1, Math.floor(Number(sp.page) || 1));
   const selectedCategory = sp.category || '';
   const searchQuery = sp.q || '';
 
-  // Auto-detect visitor system language
+  // Fix Bug #9: Auto-detect visitor system language using ordered preference matching
   const headerStore = await headers();
   const acceptLang = (headerStore.get('accept-language') || '').toLowerCase();
   let currentLang = sp.lang;
   if (!currentLang) {
-    if (acceptLang.includes('hi')) currentLang = 'hi';
-    else if (acceptLang.includes('fr')) currentLang = 'fr';
-    else if (acceptLang.includes('ar')) currentLang = 'ar';
-    else currentLang = 'en';
+    const langs = acceptLang.split(',').map((s) => s.split(';')[0].trim().slice(0, 2));
+    const supported = ['en', 'hi', 'fr', 'ar'];
+    currentLang = supported.find((l) => langs.includes(l)) || 'en';
   }
 
   const [blogsRes, categoriesRes] = await Promise.all([
-    jupsoft.getBlogs({
+    activeClient.getBlogs({
       page: currentPage,
       limit: 9,
       category: selectedCategory || undefined,
       q: searchQuery || undefined,
       lang: currentLang,
     }),
-    jupsoft.getCategories().catch(() => ({ success: true, data: [] })),
+    activeClient.getCategories().catch(() => ({ success: true, data: [] })),
   ]);
 
   const blogs = blogsRes.data || [];
@@ -166,7 +161,7 @@ export async function JupsoftBlogList({ searchParams }: BlogListPageProps) {
         <div className="flex items-center justify-center gap-2 mt-12">
           {currentPage > 1 && (
             <Link
-              href={`/blog?page=${currentPage - 1}&lang=${currentLang}${selectedCategory ? `&category=${selectedCategory}` : ''}`}
+              href={`/blog?page=${currentPage - 1}&lang=${currentLang}${selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : ''}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}`}
               className="px-4 py-2 text-sm font-semibold rounded-lg bg-white border border-slate-200 hover:bg-slate-50"
             >
               &larr; Previous
@@ -177,7 +172,7 @@ export async function JupsoftBlogList({ searchParams }: BlogListPageProps) {
           </span>
           {currentPage < totalPages && (
             <Link
-              href={`/blog?page=${currentPage + 1}&lang=${currentLang}${selectedCategory ? `&category=${selectedCategory}` : ''}`}
+              href={`/blog?page=${currentPage + 1}&lang=${currentLang}${selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : ''}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}`}
               className="px-4 py-2 text-sm font-semibold rounded-lg bg-white border border-slate-200 hover:bg-slate-50"
             >
               Next &rarr;

@@ -3,16 +3,27 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 import { jupsoft } from '../client.js';
-export async function JupsoftBlogDetail({ params, searchParams }) {
-    const { slug } = await params;
-    const sp = await searchParams;
+export async function JupsoftBlogDetail({ params, searchParams, client }) {
+    const activeClient = client || jupsoft;
+    // Fix Bug #3: Safely resolve params whether Promise or object without crashing on undefined
+    const resolvedParams = (params ? await params : {});
+    const slug = resolvedParams?.slug || '';
+    if (!slug)
+        notFound();
+    const sp = (searchParams ? await searchParams : {});
+    // Fix Bug #10: Ordered language preference matching
     const headerStore = await headers();
     const acceptLang = (headerStore.get('accept-language') || '').toLowerCase();
-    const currentLang = sp?.lang || (acceptLang.includes('hi') ? 'hi' : acceptLang.includes('fr') ? 'fr' : acceptLang.includes('ar') ? 'ar' : 'en');
-    const blog = await jupsoft.getBlogBySlug(slug, currentLang);
+    let currentLang = sp?.lang;
+    if (!currentLang) {
+        const langs = acceptLang.split(',').map((s) => s.split(';')[0].trim().slice(0, 2));
+        const supported = ['en', 'hi', 'fr', 'ar'];
+        currentLang = supported.find((l) => langs.includes(l)) || 'en';
+    }
+    const blog = await activeClient.getBlogBySlug(slug, currentLang);
     if (!blog)
         notFound();
-    jupsoft.recordView(slug, blog.id);
+    activeClient.recordView(slug, blog.id);
     return (_jsxs("main", { className: "max-w-4xl mx-auto py-12 px-4 sm:px-6", children: [_jsxs("div", { className: "flex items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100", children: [_jsxs("nav", { className: "flex items-center gap-2 text-xs text-slate-500", children: [_jsx(Link, { href: "/", className: "hover:text-slate-900", children: "Home" }), _jsx("span", { children: "/" }), _jsx(Link, { href: `/blog?lang=${currentLang}`, className: "hover:text-slate-900", children: "Blog" }), _jsx("span", { children: "/" }), _jsx("span", { className: "text-slate-900 font-medium truncate max-w-xs", children: blog.title })] }), _jsxs("div", { className: "relative group inline-block", children: [_jsxs("button", { className: "flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 transition-colors cursor-pointer border border-slate-200/80", children: [_jsx("span", { className: "text-sm leading-none", children: "\uD83C\uDF10" }), _jsx("span", { className: "uppercase tracking-wider", children: currentLang }), _jsx("span", { className: "text-[10px] text-slate-400", children: "\u25BE" })] }), _jsx("div", { className: "hidden group-hover:block absolute right-0 top-full mt-1.5 w-36 py-1.5 bg-white rounded-xl shadow-lg border border-slate-200 z-50 animate-in fade-in duration-150", children: [
                                     { code: 'en', native: 'English' },
                                     { code: 'hi', native: 'हिंदी' },

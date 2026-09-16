@@ -55,6 +55,23 @@ export interface BlogListResponse {
 export type SupportedLocale = 'en' | 'hi' | 'fr' | 'ar';
 
 export interface PageProps {
-  params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ lang?: string }>;
+  params?: Promise<{ slug?: string }> | { slug?: string };
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }> | { [key: string]: string | string[] | undefined };
+}
+
+export interface BlogListPageProps {
+  params?: Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>;
+  searchParams?: Promise<{
+    page?: string;
+    category?: string;
+    tag?: string;
+    q?: string;
+    lang?: string;
+  }> | {
+    page?: string;
+    category?: string;
+    tag?: string;
+    q?: string;
+    lang?: string;
+  };
 }

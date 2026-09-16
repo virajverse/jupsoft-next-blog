@@ -1,12 +1,8 @@
 import React from 'react';
-export interface BlogListPageProps {
-    searchParams?: Promise<{
-        page?: string;
-        category?: string;
-        tag?: string;
-        q?: string;
-        lang?: string;
-    }>;
-}
-export declare function JupsoftBlogList({ searchParams }: BlogListPageProps): Promise<React.JSX.Element>;
+import { JupsoftClient } from '../client.js';
+import type { BlogListPageProps } from '../types.js';
+export { BlogListPageProps };
+export declare function JupsoftBlogList({ searchParams, client }: BlogListPageProps & {
+    client?: JupsoftClient;
+}): Promise<React.JSX.Element>;
 //# sourceMappingURL=BlogList.d.ts.map

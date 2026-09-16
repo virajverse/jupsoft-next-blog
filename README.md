@@ -15,7 +15,7 @@
 Run the automatic scaffolder inside your Next.js project:
 
 ```bash
-npx @jupsoft/create-blog --key=YOUR_API_KEY --site=YOUR_WEBSITE_ID
+npx @jupsoft/next-blog --key=YOUR_API_KEY --site=YOUR_WEBSITE_ID
 ```
 
 Or install manually:
